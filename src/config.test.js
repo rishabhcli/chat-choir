@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {getConfig} from './config.js';
+test('config validates live credentials, ports, and flags',()=>{assert.throws(()=>getConfig({}),/required/);assert.equal(getConfig({},{live:false}).port,3000);assert.equal(getConfig({TWITCH_CLIENT_ID:'test',CHOIR_REPLIES:'0'}).replies,false);assert.throws(()=>getConfig({TWITCH_CLIENT_ID:'x',PORT:'abc'}));});
