@@ -26,9 +26,9 @@ export class Transport {
   remove(id,t=0) { this.mutateTime(t); let count=0; for (const p of this.phrases) if ((p.phrase.id === id || p.phrase.userId === id) && (p.endAt === undefined || p.endAt > t)) {p.endAt=t; count++;} return count; }
   eventsBetween(start,end) {
     if (!Number.isFinite(start) || !Number.isFinite(end) || end<start) throw new RangeError('Invalid event window');
-    this.ensureTime(end); const events=[];
+    this.ensureTime(end); const events=[], firstBar=this.barAt(Math.max(0,start)).index;
     for (const p of this.phrases) {
-      const ph=p.phrase; const melodic = ph.notes.filter(n => n.voice === ph.voice); const lastMelody = melodic.reduce((best,n) => !best || n.step > best.step ? n : best, null);
+      const ph=p.phrase; if(p.startBar+ph.bars*this.config.loops<=firstBar || (p.endAt!==undefined && p.endAt+100<=start))continue; const melodic = ph.notes.filter(n => n.voice === ph.voice); const lastMelody = melodic.reduce((best,n) => !best || n.step > best.step ? n : best, null);
       for (let loop=0;loop<this.config.loops;loop++) for (const item of [...ph.notes.map(n=>({...n,kind:'note',isLast:n===lastMelody})),...ph.drums.map(n=>({...n,kind:'drum'}))]) {
         const barIndex=p.startBar+loop*ph.bars+Math.floor(item.step/16), b=this.ensureBar(barIndex), stepMs=15000/b.bpm;
         const time=b.start+(item.step%16)*stepMs;
@@ -43,7 +43,7 @@ export class Transport {
         let remaining=item.length ?? 2, offset=item.step%16, duration=0, durationBar=barIndex;
         while (remaining>0) { const current=this.ensureBar(durationBar), take=Math.min(remaining,16-offset); duration+=take*15000/current.bpm; remaining-=take; durationBar++; offset=0; }
         const gain=(this.config.gains[loop] ?? this.config.gains.at(-1) ?? 1)*(item.velocity ?? 1);
-        events.push({time,kind:item.kind,instrument:item.kind==='drum'?'drums':item.voice,midi,drum:item.drum,gain,pan:userPan(ph.userId),duration, length:item.length ?? 2, userId:ph.userId,messageId:ph.id,bar:barIndex,step:item.step,loop,fadeAt:p.endAt,sequence:p.sequence});
+        events.push({time,kind:item.kind,instrument:item.kind==='drum'?'drums':item.voice,midi,drum:item.drum,emote:item.emote,gain,pan:userPan(ph.userId),duration, length:item.length ?? 2, userId:ph.userId,messageId:ph.id,bar:barIndex,step:item.step,loop,fadeAt:p.endAt,sequence:p.sequence});
       }
     }
     events.sort((a,b)=>a.time-b.time || a.sequence-b.sequence || a.step-b.step || (a.midi ?? 0)-(b.midi ?? 0));

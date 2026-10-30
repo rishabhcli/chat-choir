@@ -26,15 +26,15 @@ export function textToPhrase(message, context = {}) {
   const emotes = new Set(['kappa','lul','pogchamp','<3', ...(message.emotes || []).map(e => (typeof e === 'string' ? e : e.name || '').toLowerCase())]);
   const text = String(message.text ?? ''), clean = text.replace(/https?:\/\/\S+|www\.\S+/gi,' ').replace(/@[\w-]+/g,' ');
   const tokens = clean.match(/<3|[\p{L}\p{N}_']+|[,.!?]+/gu) || [];
-  let step = 0, degree = 0, first = true; const notes = [], drums = [], lyrics = [];
+  let step = 0, degree = 0, first = true; const notes = [], drums = [], lyrics = []; const melodyLimit=message.isFirstMessage ? 13 : 16;
   for (const token of tokens) {
     if (/^[,.!?]+$/.test(token)) { if (token.includes('.')) step += 2; else if (token.includes(',')) step++; continue; }
-    if (emotes.has(token.toLowerCase())) { if (step < 32) drums.push({step: Math.min(30,Math.round(step/2)*2), drum: DRUMS[hash(token.toLowerCase()) % DRUMS.length], velocity: 0.75}); continue; }
-    if (step >= 32 || notes.length >= 16) break;
+    if (emotes.has(token.toLowerCase())) { if (step < 32) drums.push({step: Math.min(30,Math.round(step/2)*2), drum: DRUMS[hash(token.toLowerCase()) % DRUMS.length], emote: token, velocity: 0.75}); continue; }
+    if (step >= 32 || notes.length >= melodyLimit) break;
     const length = syllables(token) === 1 ? 2 : syllables(token) === 2 ? 4 : 6;
     const count = token.length >= 8 ? 2 : 1;
     lyrics.push({word: token, step});
-    for (let part = 0; part < count && notes.length < 16 && step < 32; part++) {
+    for (let part = 0; part < count && notes.length < melodyLimit && step < 32; part++) {
       if (first) { degree = hash(token.toLowerCase()) % SCALES[scale].length; first = false; }
       else { const moves = [-2,-1,-1,0,0,0,1,1,2]; degree += moves[hash(`${token.toLowerCase()}:${part}`) % moves.length]; }
       const max = SCALES[scale].length + 3;
@@ -57,7 +57,7 @@ export function textToPhrase(message, context = {}) {
     // Subscriber plays the bar's triad alongside its lyric melody.
     for (let bar = 0; bar <= Math.floor(Math.max(0,step-1)/16); bar++) {
       const chord = chordTones(key.name,scale,mood,startBar+bar);
-      for (const pitch of chord) if (notes.length < 16) notes.push({step:bar*16,length:Math.min(16,32-bar*16),midi:48+pitch,velocity:0.38,voice:'pad'});
+      for (const pitch of chord) if (notes.length < melodyLimit) notes.push({step:bar*16,length:Math.min(16,32-bar*16),midi:48+pitch,velocity:0.38,voice:'pad'});
     }
   }
   if (message.isFirstMessage) for (let i = 0; i < 3 && notes.length < 16; i++) notes.push({step:i*2,length:2,midi:60+chordTones(key.name,scale,mood,startBar)[i],velocity:0.5,voice:'bell'});
