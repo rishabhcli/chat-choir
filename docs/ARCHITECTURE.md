@@ -1,11 +1,19 @@
-# Offline architecture
+# Architecture
 
-- `src/music/theory.js` defines pitch classes, scales, chords, and quantization; `hash.js` supplies stable identities.
-- `phrase.js` maps messages to bounded lyric-aligned melodies and emote percussion. `commands.js` validates roles and timestamped votes.
-- `transport.js` is the explicit-time arrangement and overlay snapshot source. It queues changes and phrases at bar boundaries, tracks loop gains, caps and fades, and emits absolute-time events. Mutations must arrive in chronological timestamp order; event windows are half-open `[start, end)` and querying them does not advance a clock.
-- `src/synth/dsp.js` and `instruments/` are pure sample-buffer DSP shared by Node and a future browser mixer. `scripts/generate-registry.js` discovers files and produces static browser-compatible imports. `mixer.js` pans, sums, optionally adds reverb, and soft-limits stereo buffers.
-- `src/cli/render.js` replays session entries through those same modules and writes PCM WAV. `src/music/midi.js` exports format-1 MIDI and an attributed lyric sheet.
+## Data flow
 
-No timers, system clock, network access, random-number source, copyrighted audio or external synth participates in a render. Hashes and pseudo-noise are seeded from input. The same input, settings, implementation and sample rate produce identical floating-point buffers on the same runtime; floating-point and transcendental implementations can vary across JS engines or hardware. Session entries are sorted by timestamp with stable input ordering. Explicit bar timing supports tempo changes, and notes crossing a change use the timing of each bar. User IDs determine voice, pan and default color; adding or removing melodic plugins can change voice assignments. `npm test` verifies plugin conformance, arrangement, export and a full synthetic-session render.
+Twitch Device Code OAuth (`src/twitch/auth.js`) obtains a public-client user token, validates it and rotates refresh tokens. `helix.js` wraps users, replies and EventSub subscriptions with 401 refresh and 429 backoff. `eventsub.js` manages WebSocket welcome, keepalive, handoff, deduplication, revocations and retries; `normalize.js` converts Twitch payloads to application events. Tests use hand-written fixtures and local fake services.
 
-The current core has no server, Twitch API, audio scheduling UI, overlay, persistence, or built-in export button. Future browser playback should schedule the same rendered sample buffers through a small mixer and limiter; it must not add a separate synthesizer.
+`src/server/policy.js` filters chat and rate-limits users. `src/server/index.js` binds localhost, applies commands and moderation, appends accepted entries to a JSONL session, and broadcasts a hello containing the complete log followed by live events. Local HTTP endpoints expose settings, test messages and exports. A reconnecting or late client gets the same history. Replay feeds the same server using timestamps from a recording, without Twitch.
+
+`src/music/session.js` is the shared log reducer. Node and browser independently apply chat, settings, removal and celebration entries to the same `Transport`; the transport uses explicit timestamps and emits absolute-time events. Settings take effect on the next bar. Mutations must be chronological. Event windows are half-open `[start,end)` and queries do not advance a clock. The snapshot supplies current chord and active lyric/note information.
+
+`theory.js` defines scales, chords and quantization, `phrase.js` maps text to bounded melodies and percussion, `commands.js` handles timestamped votes, and `midi.js` exports format-1 MIDI and lyrics. `src/synth/dsp.js` and `instruments/` contain the one sample-buffer synthesizer. The generated static registry makes all discovered plugins importable in browsers. The offline mixer pans, sums, reverberates and soft-limits; browser playback caches those same sample buffers, schedules them with lookahead, and uses Web Audio only for routing, panning, gain and compression. The browser does not implement a second synth.
+
+`public/view-model.js` contains pure layout and word-placement helpers. `overlay.js` draws the canvas and `dashboard.js` manages controls. `src/cli/render.js` replays JSON or JSONL to a normalized WAV; `src/cli/replay.js` runs the server with a timed recording.
+
+## Determinism and boundaries
+
+Music decisions and instrument samples use only explicit inputs and seeded hashes/noise, never wall-clock time, network data, timers or `Math.random`. The server converts arrival time into an explicit session timestamp before logging. Equal ordered logs, settings, implementation and sample rate produce identical arrangements and instrument buffers on the same runtime; transcendental floating-point behavior can differ by engine or hardware. Network latency, client audio devices, browser compression and offline mastering can change perceived playback. Adding or removing melodic plugins can change hashed voice assignments.
+
+Live OAuth and EventSub necessarily use network and timers, but those do not generate musical randomness. Tokens, seen-user state, and logs are local; do not print them. No framework, paid service, bundled copyrighted audio, or build step is required.

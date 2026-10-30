@@ -1,46 +1,76 @@
 # Chat Choir
 
-Chat Choir turns chat into a band: words become melodies, emotes become drums, and each participant gets a stable voice, color and position. This first milestone is the **offline core**. It contains no Twitch connection, dashboard, browser overlay, or chat sending yet. The audio is synthesized from scratch; there are no music assets, samples, or paid services.
+**Your community, in concert.** Chat Choir turns a Twitch channel's chat into a live band: every message becomes a short melody, every emote becomes percussion, and the chat's words ride the notes in a stream overlay. The sound is synthesized from scratch without samples or third-party songs, helping streamers avoid relying on licensed background tracks that can cause VOD mutes.
 
-## Run it
+- A transparent, scrolling piano-roll browser source with lyrics, chord changes, animated arrivals, moderation effects, and celebration bursts.
+- A broadcast desk for key, scale, mood, tempo, volume, chat replies, moderation, local testing, and exports.
+- A deterministic shared music engine and eight synthesized instrument plugins; browser playback and the offline renderer use the same sample-generating code.
+- Session recording, credential-free replay, MIDI and lyric-sheet downloads, and offline WAV rendering.
+- Chat commands and community voting put the audience in the conductor's chair.
 
-Requires Node 22 or newer and npm. From this directory:
+## Requirements
+
+Node 22 or newer, npm, a modern browser or OBS Browser Source, and an internet connection for live Twitch. Runtime dependencies are Node built-ins and `ws`; there is no build step, paid API, audio asset, or Twitch client secret.
 
 ```sh
 npm install
 npm test
-npm start
-npm run render -- samples/demo-session.json /tmp/demo.wav
 ```
 
-`npm start` prints the offline renderer's usage until a server is built. The render command produces a 44.1 kHz, 16-bit stereo WAV and reports duration, peak and RMS. `samples/demo-session.json` is a hand-written **synthetic example**, not real Twitch chat. Timestamps are milliseconds from the beginning. Input is an array of chronological (or sortable) entries:
+If necessary, put Homebrew Node on PATH with `export PATH=/opt/homebrew/bin:$PATH`.
 
-```json
-[
-  {"t": 0, "type": "chat", "id": "m1", "userId": "u1", "userName": "Ava", "text": "Hello chat!", "badges": ["subscriber"], "isFirstMessage": true},
-  {"t": 1000, "type": "command", "userId": "host", "badges": ["broadcaster"], "text": "!key D minor"},
-  {"t": 2000, "type": "delete", "messageId": "m1"}
-]
+## Run it with Twitch
+
+1. Register an application at [Twitch Developer Console](https://dev.twitch.tv/console/apps). Choose **Public** client type and add `http://localhost` as an OAuth redirect URL. Copy the client ID.
+2. Copy `.env.example` to `.env`, set `TWITCH_CLIENT_ID`, and optionally set `TWITCH_CHANNEL` to a channel login. With no channel, Chat Choir joins the account that authorizes the app.
+3. Run `npm run login`. Open the displayed Twitch verification URL, enter the displayed code, and authorize the requested chat, follower, and hype-train scopes. No client secret is needed.
+4. Run `npm start`, then open **http://127.0.0.1:3000/** for the broadcast desk.
+5. In OBS, add a Browser Source at **1920 × 1080** using `http://127.0.0.1:3000/overlay.html?autostart=1`. Enable **Control audio via OBS**. The overlay is transparent by default. Use the on-screen sound button if your browser blocks autoplay.
+
+The server listens on `127.0.0.1` only. A Twitch user token is stored locally with mode `0600` in `.data/tokens.json` and refreshes automatically; session logs and first-seen user IDs also stay under `.data` by default. These files contain private account or chat data and should not be shared. `TWITCH_CHANNEL` can name another channel, but follow/hype subscriptions may require broadcaster or moderator authorization and will be skipped with a warning if unavailable.
+
+Options in `.env.example`: `PORT` (default 3000), `CHOIR_REPLIES` (0/1, default 1), `CHOIR_NO_TEST` (1 disables local test messages), `IGNORE_USERS` (comma-separated logins), and `SESSION_DIR`. `TWITCH_ID_BASE`, `TWITCH_API_BASE`, and `TWITCH_EVENTSUB_URL` override endpoints for testing.
+
+## Try it without Twitch
+
+```sh
+npm run replay -- samples/demo-session.json
+# optional: play the timeline twice as fast
+npm run replay -- samples/demo-session.json --speed 2
 ```
 
-A deletion may instead contain `userId`, which removes that user's phrases. Unique message IDs are recommended. Chat messages can also specify `color` and an `emotes` array of names (or objects with `name`). Ties in timestamps preserve input order. The command processor understands `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, and `!choir`. Broadcasters and moderators authorize changes immediately; everyone else needs three distinct votes for the same value within 60 seconds. Authorized settings take effect at the next bar.
+Open the same dashboard and overlay URLs. The example is hand-written synthetic chat, and both screens show a **REPLAY** badge. Replay needs no Twitch credentials. The dashboard's local test box inserts a clearly marked message into the local session and overlay; it does not send that message to Twitch.
 
-## Musical rules
+```sh
+npm run render -- samples/demo-session.json /tmp/choir.wav
+npm run render -- recording.jsonl /tmp/choir-raw.wav --no-normalize
+```
 
-URLs and @mentions are removed; words become notes, with words of eight or more characters split into two. An estimated one, two, or three-plus syllables gives an eighth, quarter, or dotted quarter note. A comma inserts one sixteenth-step rest and a period or ellipsis inserts two. A phrase contains at most 16 notes and 32 steps. Identified emotes, plus Kappa, LUL, PogChamp, and <3, become deterministic drum hits on the nearest eighth-note grid. ALL-CAPS words receive a velocity accent.
+The renderer writes 44.1 kHz 16-bit stereo WAV, trims initial silence, and defaults to a soft-limited peak of approximately −1 dBFS. It accepts JSON arrays or JSONL logs. The dashboard downloads format-1 MIDI, an attributed lyric sheet, and the JSONL session log. MIDI approximates audio fades as shortened notes and uses the nearest major/minor key signature for other modes.
 
-The first word hashes to a scale degree; later word hashes choose mostly stepwise moves within a reflected range. Strong beats snap to the current bar's chord and weak beats to the scale. A normal ending resolves to a chord tone; a question rises to the second or fifth degree, and an exclamation jumps up an octave with an accent. At playback the transport re-quantizes notes to each bar's active key, scale and chord, including when a phrase loops. A first-time chatter adds a short bell arpeggio within the note budget.
+## How the choir plays
 
-Voices and pan are stable for a user ID. Moderators use bass, subscribers use pad with chord tones, broadcasters use lead, and VIPs use bell; other users select from discovered melodic plugins. A provided color is used as-is, otherwise a stable color is derived from the user ID. Badge priority is broadcaster, moderator, VIP, then subscriber. A phrase begins at the next bar, repeats four times by default at gains 1, 0.75, 0.5 and 0.3, and is subject to a user cooldown, a simultaneous-phrase cap, and a per-bar note budget. An eviction or deletion fades for 100 ms. Each phrase can span one or two bars, so one loop means one complete phrase, not necessarily one bar.
+Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice, pan and default color. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar, loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
 
-Scales: major, natural minor (`minor`), dorian, mixolydian, pentatonic major/minor, and blues. Mood progressions: chill I–vi–IV–V, hype I–V–vi–IV, spooky i–♭VI–iv–V, bright I–IV–V–IV. Spooky explicitly uses a major dominant. Pentatonic melodies use their corresponding major or minor seven-note harmony for triads.
+Try `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, or `!choir`. Broadcasters and moderators authorize changes directly; other viewers need three distinct votes for the same value within 60 seconds. Music settings change on the next bar; chat replies are globally limited to one every three seconds.
 
-## MIDI and lyric export
+Overlay parameters: `bg=dark`, `scale` (0.45–1.5), `position=top|bottom|full`, `volume` (0–1), `lyrics=0|1`, and `autostart=1`. For example: `/overlay.html?bg=dark&position=top&volume=0.6`. `window.__choir` exposes the current snapshot, recent events, audio context time, and scheduled-note count for debugging.
 
-`src/music/midi.js` exports `exportMidi(transport)` as a format-1 Standard MIDI File byte array with a tempo/key track and a track per voice, and `exportLyricSheet(transport)` as attributed plain text. The offline session replay helper is `arrangeSession(session)`. These APIs are ready for the dashboard's eventual export button; no UI is included in this milestone. MIDI represents deletion with a shortened note rather than an audio fade and records the nearest MIDI major/minor key signature for other modes.
+## Codex and the judging criteria
+
+<!-- CODEX-LOG -->
+
+- **Innovation / idea:** chat text becomes a harmonized, evolving composition rather than a queue of requested songs.
+- **Potential impact:** communities hear their own contributions; synthesis removes the need for licensed samples, and moderation can remove a phrase from the music.
+- **Technical implementation / Codex:** a deterministic shared engine, testable plugins, EventSub reconnects, event-log reconstruction, exports and offline replay create a foundation Codex can extend.
+- **Design:** a legible broadcast desk and animated lyric piano roll make the collective performance visible and fun to watch.
 
 ## Add an instrument with Codex
 
-Ask Codex, for example: “Add a steel drum instrument to Chat Choir.” Create one ES module in `src/synth/instruments/` exporting `id`, `name`, `role` (`melodic`, `bass`, `pad`, or `percussion`), and `render(note, sampleRate)`. `render` must return a finite, non-silent `Float32Array`, peak at or below 1, decay to near silence, and return identical samples for identical inputs. `note` contains `midi`, `duration` in seconds, and optionally `drum`; use the seeded noise helper in `dsp.js` rather than `Math.random`. Keep the module browser-compatible: no Node-only imports or audio assets. The generated static registry discovers every `.js` file in that directory during `npm install`, `npm test`, `npm start`, and `npm run render`; commit the regenerated `registry.generated.js` with the plugin. The conformance test automatically exercises every discovered instrument. Run the full tests and listen to a render before committing.
+Ask Codex, for example: “Add a steel drum instrument to Chat Choir.” Create an ES module in `src/synth/instruments/` exporting `id`, `name`, `role` (`melodic`, `bass`, `pad`, or `percussion`), and `render(note, sampleRate)`. Return a deterministic, non-silent `Float32Array` with finite samples, peak at or below 1, and a near-silent tail. `note` contains MIDI pitch, duration in seconds and optional drum name. Use seeded noise from `dsp.js`, never `Math.random` or audio assets. Keep the module browser-compatible. The generated registry discovers every `.js` plugin during install, test, start, render and replay; commit the regenerated `registry.generated.js`. The conformance test covers every plugin. Run the full tests and listen to a render.
+
+## Limitations
+
+Twitch subscriptions depend on the authorized account's scopes and relationship to the selected channel; unsupported subscriptions are skipped. The browser can require an audio-enabling click. Playback uses the shared synthesized samples, while browser compression and offline reverb/normalization differ, so the live mix is not a bit-identical WAV. Browser scheduling and network latency can cause small timing differences across clients. Session files grow with chat activity, and exports include chat text and usernames. Localhost has no multi-user authentication: anyone with access to the computer can operate the dashboard. This is a hackathon prototype, not a guarantee against all copyright claims.
 
 See [architecture](docs/ARCHITECTURE.md) and [Codex conventions](AGENTS.md).
