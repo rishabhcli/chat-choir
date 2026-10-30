@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {parseKey,normalizeScale,degreeToMidi,chordTones,snapMidi,scaleTones,chordName} from './theory.js';
+test('keys, enharmonics, modes and scale degrees',()=>{assert.deepEqual(parseKey('d minor'),{tonic:2,name:'D',scale:'natural minor'});assert.equal(parseKey('Bb').tonic,10);assert.equal(parseKey('F#').tonic,6);assert.equal(degreeToMidi(-1,'C','major'),59);assert.equal(degreeToMidi(7,'C','major'),72);assert.equal(normalizeScale('pentatonic-minor'),'pentatonic minor');assert.throws(()=>parseKey('H'));});
+test('progressions and snapping',()=>{assert.deepEqual(chordTones('C','major','chill',1),[9,0,4]);assert.deepEqual(chordTones('C','natural minor','spooky',3),[7,11,2]);assert.equal(chordName('C','major','bright',1),'F');assert.equal(snapMidi(61,scaleTones('C','major')),60);assert.equal(snapMidi(66,[7,11,2]),67);});
