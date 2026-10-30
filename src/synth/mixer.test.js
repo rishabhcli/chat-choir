@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {mixEvents} from './mixer.js';
+test('stereo mix is deterministic and bounded with ten overlapping phrases',()=>{const events=Array.from({length:10},(_,i)=>({time:0,instrument:'lead',midi:60+i,gain:1,pan:i/5-1,duration:400}));const a=mixEvents(events,{sampleRate:8000,durationMs:1000}),b=mixEvents(events,{sampleRate:8000,durationMs:1000});assert.deepEqual(a,b);assert.ok(a.left.some(x=>x!==0));for(const x of [...a.left,...a.right])assert.ok(Number.isFinite(x)&&Math.abs(x)<1);});

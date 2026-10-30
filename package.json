@@ -1,0 +1,5 @@
+{
+  "name": "chat-choir", "version": "0.1.0", "private": true, "type": "module",
+  "scripts": {"prepare": "node scripts/generate-registry.js", "pretest": "node scripts/generate-registry.js", "test": "node --test", "prestart": "node scripts/generate-registry.js", "start": "node src/cli/render.js --help", "prerender": "node scripts/generate-registry.js", "render": "node src/cli/render.js"},
+  "engines": {"node": ">=22"}, "license": "MIT"
+}

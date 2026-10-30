@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {frequency,noiseGenerator,softClip,reverb} from './dsp.js';
+test('DSP helpers are deterministic and bounded',()=>{assert.equal(frequency(69),440);const a=noiseGenerator('x'),b=noiseGenerator('x');assert.deepEqual([a(),a()],[b(),b()]);assert.ok(Math.abs(softClip(10))<1);const l=new Float32Array(5000),r=new Float32Array(5000);l[0]=1;reverb(l,r,44100);assert.ok(l.some((x,i)=>i>0&&x!==0));});
