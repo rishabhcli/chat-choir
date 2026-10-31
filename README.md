@@ -10,11 +10,11 @@
 
 ## In action
 
-A synthetic replay in the browser source, the moderation animation, and the 1280 × 800 broadcast desk:
+These screenshots come from a real Twitch session with test accounts. The overlay frames were rendered from its recorded log with the manual clock; the broadcast desk was captured live:
 
-![Piano roll after a key change](docs/screenshots/key-change.png)
-![Moderation removes a voice](docs/screenshots/moderation.png)
-![Broadcast desk](docs/screenshots/dashboard.png)
+![Live session piano roll and emote hits](docs/screenshots/live-choir.png)
+![Live session key-change announcement](docs/screenshots/live-key-change.png)
+![Live broadcast desk](docs/screenshots/live-dashboard.png)
 
 ## Requirements
 
@@ -74,7 +74,7 @@ For custom renderers, `/overlay?clock=manual` disables WebSocket updates, timers
 
 ## How the choir plays
 
-Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice, pan and default color. New melodic plugins use rendezvous scoring against a compatibility group for the original five voices, so adding a plugin changes only the users assigned to that plugin. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar (or the opening downbeat for a first message at time zero), loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
+Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice and pan. The overlay uses Twitch colors when supplied, and otherwise assigns golden-angle hues by first appearance; dark colors are lightened for legibility. New melodic plugins use rendezvous scoring against a compatibility group for the original five voices, so adding a plugin changes only the users assigned to that plugin. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar (or the opening downbeat for a first message at time zero), loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
 
 Try `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, or `!choir`. Broadcasters and moderators authorize changes directly; other viewers need distinct votes for the same value within the configured window (by default, 3 votes within 60 seconds). `!choir` and vote replies show the current threshold. The authenticated bot account’s own messages are ignored by user ID. Music settings change on the next bar; chat replies are globally limited to one every three seconds.
 
