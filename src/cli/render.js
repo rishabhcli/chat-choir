@@ -12,19 +12,19 @@ export function arrangeSession(session,options={}) {
     state.apply(e);
   }
   const transport=state.transport;
-  return {transport,lastTime:entries.at(-1)?.t ?? 0};
+  return {transport,firstTime:entries[0]?.t ?? 0,lastTime:entries.at(-1)?.t ?? 0};
 }
-export function renderSession(session,{sampleRate=44100,normalize=true,trimSilence=true,...options}={}) {
-  const {transport,lastTime}=arrangeSession(session,options);
+export function renderSession(session,{sampleRate=44100,normalize=true,...options}={}) {
+  const {transport,firstTime,lastTime}=arrangeSession(session,options);
   const endBar=transport.phrases.reduce((n,p)=>Math.max(n,p.startBar+p.phrase.bars*transport.config.loops),1);
   const end=Math.max(lastTime+1000,transport.ensureBar(endBar).start+1500);
-  const events=transport.eventsBetween(0,end), startMs=trimSilence ? (events[0]?.time ?? 0) : 0;
+  const events=transport.eventsBetween(0,end), startMs=firstTime;
   const audio=mixEvents(events,{sampleRate,startMs,durationMs:end-startMs,wet:.12});
   if(normalize) normalizeAudio(audio);
-  return {...audio,transport};
+  return {...audio,transport,startMs};
 }
 /** Peak normalization with a gentle saturating knee, followed by peak calibration. */
-export function normalizeAudio(audio,target=10**(-1/20)) {
+export function normalizeAudio(audio,target=10**(-1/20)-1e-6) {
   let peak=0; for(const channel of [audio.left,audio.right]) for(const sample of channel) peak=Math.max(peak,Math.abs(sample));
   if(!peak)return audio;
   const gain=target/peak, knee=target*.8, span=target-knee; let finalPeak=0;

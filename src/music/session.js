@@ -4,7 +4,7 @@ import { CommandProcessor } from './commands.js';
 import { chordTones } from './theory.js';
 /** Shared log reducer. Events have explicit session timestamps and arrive in order. */
 export class ChoirSession {
-  constructor(options={}) { this.transport=new Transport({cooldownMs:0,...options}); this.commands=new CommandProcessor(options); this.volume=options.volume ?? .8; this.replies=options.replies ?? true; this.mutedUsers=[]; }
+  constructor(options={}) { this.transport=new Transport({cooldownMs:0,allowInitialDownbeat:true,...options}); this.commands=new CommandProcessor(options); this.volume=options.volume ?? .8; this.replies=options.replies ?? true; this.mutedUsers=[]; }
   apply(event) {
     const t=event.t;
     if(event.type==='chat') return this.transport.enqueue(textToPhrase(event,this.transport.getNextBarSettings(t)),t);

@@ -25,7 +25,7 @@ export function textToPhrase(message, context = {}) {
   const voice = badges.has('broadcaster') ? 'lead' : badges.has('moderator') ? 'bass' : badges.has('vip') ? 'bell' : badges.has('subscriber') ? 'pad' : MELODIC_VOICES[hash(userId) % MELODIC_VOICES.length];
   const emotes = new Set(['kappa','lul','pogchamp','<3', ...(message.emotes || []).map(e => (typeof e === 'string' ? e : e.name || '').toLowerCase())]);
   const text = String(message.text ?? ''), clean = text.replace(/https?:\/\/\S+|www\.\S+/gi,' ').replace(/@[\w-]+/g,' ');
-  const tokens = clean.match(/<3|[\p{L}\p{N}_']+|[,.!?]+/gu) || [];
+  const tokens = clean.match(/<3|[\p{L}\p{M}\p{N}_']+|\p{Regional_Indicator}{2}|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier}|\u200D\p{Extended_Pictographic})*|[,.!?]+/gu) || [];
   let step = 0, degree = 0, first = true; const notes = [], drums = [], lyrics = []; const melodyLimit=message.isFirstMessage ? 13 : 16;
   for (const token of tokens) {
     if (/^[,.!?]+$/.test(token)) { if (token.includes('.')) step += 2; else if (token.includes(',')) step++; continue; }
@@ -53,14 +53,14 @@ export function textToPhrase(message, context = {}) {
       last.midi = choices.sort((a,b) => a-b)[0] ?? options[1];
     } else { last.midi = snapMidi(last.midi,chord); if (/!\s*$/.test(clean)) { last.midi = Math.min(127,last.midi+12); last.velocity = 1; } }
   }
-  if (voice === 'pad') {
+  if (voice === 'pad' && notes.length) {
     // Subscriber plays the bar's triad alongside its lyric melody.
     for (let bar = 0; bar <= Math.floor(Math.max(0,step-1)/16); bar++) {
       const chord = chordTones(key.name,scale,mood,startBar+bar);
       for (const pitch of chord) if (notes.length < melodyLimit) notes.push({step:bar*16,length:Math.min(16,32-bar*16),midi:48+pitch,velocity:0.38,voice:'pad'});
     }
   }
-  if (message.isFirstMessage) for (let i = 0; i < 3 && notes.length < 16; i++) notes.push({step:i*2,length:2,midi:60+chordTones(key.name,scale,mood,startBar)[i],velocity:0.5,voice:'bell'});
+  if (message.isFirstMessage && notes.length) for (let i = 0; i < 3 && notes.length < 16; i++) notes.push({step:i*2,length:2,midi:60+chordTones(key.name,scale,mood,startBar)[i],velocity:0.5,voice:'bell'});
   const end = Math.max(step,...notes.map(n => n.step+n.length),...drums.map(d => d.step+1),1);
   return {id,userId,userName:String(message.userName ?? userId),text,color:message.color || userColor(userId),voice,notes,drums,bars:Math.min(2,Math.max(1,Math.ceil(end/16))),lyrics};
 }

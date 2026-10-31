@@ -3,8 +3,8 @@ import { userPan } from './hash.js';
 const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
 /** Explicit-time arrangement. Mutations must be supplied in chronological order. */
 export class Transport {
-  constructor({bpm=96,key='C',scale='major',mood='chill',loops=4,gains=[1,.75,.5,.3],maxPhrases=10,cooldownMs=2000,maxNotesPerBar=160} = {}) {
-    this.config = {loops,gains,maxPhrases,cooldownMs,maxNotesPerBar};
+  constructor({bpm=96,key='C',scale='major',mood='chill',loops=4,gains=[1,.75,.5,.3],maxPhrases=10,cooldownMs=2000,maxNotesPerBar=160,allowInitialDownbeat=false} = {}) {
+    this.config = {loops,gains,maxPhrases,cooldownMs,maxNotesPerBar,allowInitialDownbeat};
     this.validate({bpm,key,scale,mood});
     this.bars = [{index:0,start:0,bpm,key:parseKey(key).name,scale:normalizeScale(scale),mood}];
     this.pending = new Map(); this.phrases = []; this.lastUser = new Map(); this.lastMutation = 0;
@@ -18,7 +18,7 @@ export class Transport {
   enqueue(phrase,t=0) {
     this.mutateTime(t); const bar = this.barAt(t); const previous = this.lastUser.get(phrase.userId);
     if (previous !== undefined && t-previous < this.config.cooldownMs) return {accepted:false,reason:'cooldown'};
-    this.lastUser.set(phrase.userId,t); const startBar=bar.index+1;
+    this.lastUser.set(phrase.userId,t); const startBar=this.config.allowInitialDownbeat && t===0 && this.phrases.length===0 ? 0 : bar.index+1;
     const active=this.phrases.filter(p => p.startBar <= startBar && p.startBar+p.phrase.bars*this.config.loops > startBar && (p.endAt === undefined || p.endAt > this.ensureBar(startBar).start));
     if (active.length >= this.config.maxPhrases) { active.sort((a,b)=>a.sequence-b.sequence); active[0].endAt=this.ensureBar(startBar).start; }
     this.phrases.push({phrase,startBar,sequence:this.phrases.length}); return {accepted:true,startBar};
@@ -55,5 +55,5 @@ export class Transport {
     return {bar:b.index, chord:chordName(b.key,b.scale,b.mood,b.index),settings:{bpm:b.bpm,key:b.key,scale:b.scale,mood:b.mood}, activePhrases:active.map(p=>({id:p.phrase.id,userId:p.phrase.userId,userName:p.phrase.userName,color:p.phrase.color,lyrics:p.phrase.lyrics,notes:sounding.filter(e=>e.messageId===p.phrase.id && e.kind==='note').map(e=>({step:e.step,length:e.length,midi:e.midi,velocity:e.gain,voice:e.instrument,time:e.time,duration:e.duration})),startBar:p.startBar,loop:Math.floor((b.index-p.startBar)/p.phrase.bars)}))};
   }
   getSettings(t=0) { const b=this.barAt(t); return {bpm:b.bpm,key:b.key,scale:b.scale,mood:b.mood}; }
-  getNextBarSettings(t=0) { const b=this.ensureBar(this.barAt(t).index+1); return {bpm:b.bpm,key:b.key,scale:b.scale,mood:b.mood,startBar:b.index}; }
+  getNextBarSettings(t=0) { const index=this.config.allowInitialDownbeat && t===0 && this.phrases.length===0 ? 0 : this.barAt(t).index+1; const b=this.ensureBar(index); return {bpm:b.bpm,key:b.key,scale:b.scale,mood:b.mood,startBar:b.index}; }
 }
