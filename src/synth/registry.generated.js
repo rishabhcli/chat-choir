@@ -7,4 +7,5 @@ import * as instrument4 from './instruments/lead.js';
 import * as instrument5 from './instruments/marimba.js';
 import * as instrument6 from './instruments/pad.js';
 import * as instrument7 from './instruments/pluck.js';
-export const instruments = [instrument0, instrument1, instrument2, instrument3, instrument4, instrument5, instrument6, instrument7];
+import * as instrument8 from './instruments/steelpan.js';
+export const instruments = [instrument0, instrument1, instrument2, instrument3, instrument4, instrument5, instrument6, instrument7, instrument8];

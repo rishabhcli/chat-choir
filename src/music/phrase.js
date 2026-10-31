@@ -1,5 +1,6 @@
 import { hash, userColor } from './hash.js';
 import { instruments } from '../synth/registry.js';
+import { selectMelodicVoice } from './voice.js';
 import { SCALES, normalizeScale, parseKey, degreeToMidi, chordTones, snapMidi } from './theory.js';
 export const MELODIC_VOICES = instruments.filter(instrument => instrument.role === 'melodic').map(instrument => instrument.id);
 const DRUMS = ['kick','snare','closedHat','openHat','clap','tom'];
@@ -22,7 +23,7 @@ export function textToPhrase(message, context = {}) {
   if (stepsPerBar !== 16) throw new RangeError('Only 16 steps per bar are supported');
   const id = String(message.id ?? `${message.userId}:${hash(message.text ?? '')}`), userId = String(message.userId ?? 'anonymous');
   const badges = badgeSet(message.badges);
-  const voice = badges.has('broadcaster') ? 'lead' : badges.has('moderator') ? 'bass' : badges.has('vip') ? 'bell' : badges.has('subscriber') ? 'pad' : MELODIC_VOICES[hash(userId) % MELODIC_VOICES.length];
+  const voice = badges.has('broadcaster') ? 'lead' : badges.has('moderator') ? 'bass' : badges.has('vip') ? 'bell' : badges.has('subscriber') ? 'pad' : selectMelodicVoice(userId, MELODIC_VOICES);
   const emotes = new Set(['kappa','lul','pogchamp','<3', ...(message.emotes || []).map(e => (typeof e === 'string' ? e : e.name || '').toLowerCase())]);
   const text = String(message.text ?? ''), clean = text.replace(/https?:\/\/\S+|www\.\S+/gi,' ').replace(/@[\w-]+/g,' ');
   const tokens = clean.match(/<3|[\p{L}\p{M}\p{N}_']+|\p{Regional_Indicator}{2}|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier}|\u200D\p{Extended_Pictographic})*|[,.!?]+/gu) || [];
