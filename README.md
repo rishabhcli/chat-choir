@@ -8,6 +8,14 @@
 - Session recording, credential-free replay, MIDI and lyric-sheet downloads, and offline WAV rendering.
 - Chat commands and community voting put the audience in the conductor's chair.
 
+## In action
+
+A synthetic replay in the browser source, the moderation animation, and the 1280 × 800 broadcast desk:
+
+![Piano roll after a key change](docs/screenshots/key-change.png)
+![Moderation removes a voice](docs/screenshots/moderation.png)
+![Broadcast desk](docs/screenshots/dashboard.png)
+
 ## Requirements
 
 Node 22 or newer, npm, a modern browser or OBS Browser Source, and an internet connection for live Twitch. Runtime dependencies are Node built-ins and `ws`; there is no build step, paid API, audio asset, or Twitch client secret.
@@ -46,15 +54,31 @@ npm run render -- samples/demo-session.json /tmp/choir.wav
 npm run render -- recording.jsonl /tmp/choir-raw.wav --no-normalize
 ```
 
-The renderer writes 44.1 kHz 16-bit stereo WAV, trims initial silence, and defaults to a soft-limited peak of approximately −1 dBFS. It accepts JSON arrays or JSONL logs. The dashboard downloads format-1 MIDI, an attributed lyric sheet, and the JSONL session log. MIDI approximates audio fades as shortened notes and uses the nearest major/minor key signature for other modes.
+The renderer writes 44.1 kHz 16-bit stereo WAV, starts its timeline at the first recorded event, and defaults to a soft-limited peak of approximately −1 dBFS. A session whose first chat arrives exactly at time zero starts that phrase on the opening downbeat; later entries retain their recorded timing and bar quantization. It accepts JSON arrays or JSONL logs. The dashboard downloads format-1 MIDI, an attributed lyric sheet, and the JSONL session log. MIDI approximates audio fades as shortened notes and uses the nearest major/minor key signature for other modes.
+
+## Frame-exact video capture
+
+Install the Playwright Chromium browser if it is not already cached (`npx playwright install chromium`). `PLAYWRIGHT_CHROMIUM_EXECUTABLE` can point to a compatible Chromium binary when the default lookup does not work.
+
+```sh
+npm run capture -- recording.jsonl /tmp/choir-frames --fps 30 --from 0 --to 10000
+npm run render -- recording.jsonl /tmp/choir.wav
+npm run smoke
+```
+
+Capture writes transparent `frame-000000.png`, `frame-000001.png`, and so on into an output directory without existing capture frames (to avoid accidentally mixing old and new frames). `--from` and `--to` are milliseconds relative to the first recorded event; the interval is `[from, to)`. Omit `--to` to capture through the arrangement's tail. WAV sample zero and capture frame zero both represent the timestamp of the first event in the input. For a nonzero `--from`, trim the same amount from the start of the WAV when combining them. Any genuine rest between that event and the first note is preserved. The capture command runs a temporary localhost server, without Twitch credentials or audio playback.
+
+For custom renderers, `/overlay?clock=manual` disables WebSocket updates, timers and audio. Call `window.__choir.loadSession(eventsArray)` and then `window.__choir.seek(ms)` to synchronously draw a single frame at an **absolute session timestamp**. `/overlay?clock=manual&session=/export-session.jsonl` loads a JSONL log from a server path; `window.__choir.sessionLoaded` becomes true when it is ready. Repeated and backward seeks reconstruct the same pixels in the same browser. Manual rendering uses the original event history and never needs a live server connection after the page and modules load.
+
+`npm run smoke` is separate from the fast unit suite. It runs a temporary replay in headless Chromium, checks scheduled notes, the running AudioContext and non-silent master analyser, verifies repeated manual seeks, and refreshes seven screenshots in `docs/screenshots/`. The celebration image uses an explicitly synthetic raid event.
 
 ## How the choir plays
 
-Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice, pan and default color. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar, loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
+Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice, pan and default color. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar (or the opening downbeat for a first message at time zero), loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
 
 Try `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, or `!choir`. Broadcasters and moderators authorize changes directly; other viewers need three distinct votes for the same value within 60 seconds. Music settings change on the next bar; chat replies are globally limited to one every three seconds.
 
-Overlay parameters: `bg=dark`, `scale` (0.45–1.5), `position=top|bottom|full`, `volume` (0–1), `lyrics=0|1`, and `autostart=1`. For example: `/overlay.html?bg=dark&position=top&volume=0.6`. `window.__choir` exposes the current snapshot, recent events, audio context time, and scheduled-note count for debugging.
+Overlay parameters: `bg=dark`, `scale` (0.45–1.5), `position=top|bottom|full`, `volume` (0–1), `lyrics=0|1`, and `autostart=1`. For example: `/overlay.html?bg=dark&position=top&volume=0.6`. `window.__choir` exposes the current snapshot, recent events, audio context time and state, master analyser peak, and scheduled-note count for debugging.
 
 ## Codex and the judging criteria
 
@@ -71,6 +95,6 @@ Ask Codex, for example: “Add a steel drum instrument to Chat Choir.” Create 
 
 ## Limitations
 
-Twitch subscriptions depend on the authorized account's scopes and relationship to the selected channel; unsupported subscriptions are skipped. The browser can require an audio-enabling click. Playback uses the shared synthesized samples, while browser compression and offline reverb/normalization differ, so the live mix is not a bit-identical WAV. Browser scheduling and network latency can cause small timing differences across clients. Session files grow with chat activity, and exports include chat text and usernames. Localhost has no multi-user authentication: anyone with access to the computer can operate the dashboard. This is a hackathon prototype, not a guarantee against all copyright claims.
+Twitch subscriptions depend on the authorized account's scopes and relationship to the selected channel; unsupported subscriptions are skipped. The browser can require an audio-enabling click. Playback uses the shared synthesized samples, while browser compression and offline reverb/normalization differ, so the live mix is not a bit-identical WAV. Browser scheduling and network latency can cause small timing differences across clients. Session files grow with chat activity, and exports include chat text and usernames. Localhost has no multi-user authentication: anyone with access to the computer can operate the dashboard. PNG output is deterministic for a fixed browser, installed fonts and viewport; font and graphics rendering can vary between machines. This is a hackathon prototype, not a guarantee against all copyright claims.
 
 See [architecture](docs/ARCHITECTURE.md) and [Codex conventions](AGENTS.md).
