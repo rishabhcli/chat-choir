@@ -15,7 +15,9 @@
     "prereplay": "node scripts/generate-registry.js",
     "replay": "node src/cli/replay.js",
     "smoke": "node scripts/smoke-overlay.mjs",
-    "capture": "node scripts/capture.mjs"
+    "capture": "node scripts/capture.mjs",
+    "prepreview": "node scripts/generate-registry.js",
+    "preview": "node src/cli/preview.js"
   },
   "engines": {
     "node": ">=22"

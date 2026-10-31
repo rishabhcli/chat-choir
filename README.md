@@ -4,7 +4,7 @@
 
 - A transparent, scrolling piano-roll browser source with lyrics, chord changes, animated arrivals, moderation effects, and celebration bursts.
 - A broadcast desk for key, scale, mood, tempo, volume, chat replies, moderation, local testing, and exports.
-- A deterministic shared music engine and eight synthesized instrument plugins; browser playback and the offline renderer use the same sample-generating code.
+- A deterministic shared music engine and nine synthesized instrument plugins; browser playback and the offline renderer use the same sample-generating code.
 - Session recording, credential-free replay, MIDI and lyric-sheet downloads, and offline WAV rendering.
 - Chat commands and community voting put the audience in the conductor's chair.
 
@@ -74,7 +74,7 @@ For custom renderers, `/overlay?clock=manual` disables WebSocket updates, timers
 
 ## How the choir plays
 
-Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice, pan and default color. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar (or the opening downbeat for a first message at time zero), loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
+Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice, pan and default color. New melodic plugins use rendezvous scoring against a compatibility group for the original five voices, so adding a plugin changes only the users assigned to that plugin. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar (or the opening downbeat for a first message at time zero), loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
 
 Try `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, or `!choir`. Broadcasters and moderators authorize changes directly; other viewers need distinct votes for the same value within the configured window (by default, 3 votes within 60 seconds). `!choir` and vote replies show the current threshold. The authenticated bot account’s own messages are ignored by user ID. Music settings change on the next bar; chat replies are globally limited to one every three seconds.
 
@@ -91,7 +91,7 @@ Overlay parameters: `bg=dark`, `scale` (0.45–1.5), `position=top|bottom|full`,
 
 ## Add an instrument with Codex
 
-Ask Codex, for example: “Add a steel drum instrument to Chat Choir.” Create an ES module in `src/synth/instruments/` exporting `id`, `name`, `role` (`melodic`, `bass`, `pad`, or `percussion`), and `render(note, sampleRate)`. Return a deterministic, non-silent `Float32Array` with finite samples, peak at or below 1, and a near-silent tail. `note` contains MIDI pitch, duration in seconds and optional drum name. Use seeded noise from `dsp.js`, never `Math.random` or audio assets. Keep the module browser-compatible. The generated registry discovers every `.js` plugin during install, test, start, render and replay; commit the regenerated `registry.generated.js`. The conformance test covers every plugin. Run the full tests and listen to a render.
+Ask Codex, for example: “Add a steel drum instrument to Chat Choir.” Create an ES module in `src/synth/instruments/` exporting `id`, `name`, `role` (`melodic`, `bass`, `pad`, or `percussion`), and `render(note, sampleRate)`. Return a deterministic, non-silent `Float32Array` with finite samples, peak at or below 1, and a near-silent tail. `note` contains MIDI pitch, duration in seconds and optional drum name. Use seeded noise from `dsp.js`, never `Math.random` or audio assets. Keep the module browser-compatible. The generated registry discovers every `.js` plugin during install, test, start, render and replay; commit the regenerated `registry.generated.js`. The conformance test covers every plugin. Run `npm run preview -- steelpan /tmp/steelpan.wav` to audition any instrument ID with a short D dorian phrase (the drums plugin previews its drum sounds). Run the full tests and listen to a render.
 
 ## Limitations
 
