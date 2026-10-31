@@ -36,5 +36,5 @@ export function exportMidi(transport,{endMs}={}) {
 }
 /** A readable attribution list; bar numbers are one-based. */
 export function exportLyricSheet(transport) {
-  return transport.phrases.map(p=>`Bar ${p.startBar+1} — ${p.phrase.userName}: ${p.phrase.text}`).join('\n')+'\n';
+  return transport.phrases.map(p=>{const chars=Array.from(String(p.phrase.text ?? '').replace(/\s+/gu,' ').trim());const text=chars.length>200 ? chars.slice(0,199).join('')+'…' : chars.join('');return `Bar ${p.startBar+1} — ${p.phrase.userName}: ${text}`;}).join('\n')+'\n';
 }
