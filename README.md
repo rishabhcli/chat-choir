@@ -80,9 +80,30 @@ Try `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, or `!
 
 Overlay parameters: `bg=dark`, `scale` (0.45–1.5), `position=top|bottom|full`, `volume` (0–1), `lyrics=0|1`, and `autostart=1`. For example: `/overlay.html?bg=dark&position=top&volume=0.6`. `window.__choir` exposes the current snapshot, recent events, audio context time and state, master analyser peak, and scheduled-note count for debugging.
 
+## Demo recording
+
+The `demo/` folder holds the material from one real Twitch session on `twitch.tv/chatchoir_live` with two test accounts (`choirmate_ava`, `choirmate_ben`) sending 16 chat messages through the Twitch API:
+
+- `demo/chat-choir-demo.mp4`: the 2:27 demo video (the live-chat footage is real Twitch chat; the overlay is rendered frame by frame from the recorded log; the Codex section is a sped-up replay of the real Codex rollout).
+- `demo/live-session.jsonl`: the recorded session log. Try it: `npm run replay -- demo/live-session.jsonl` or `npm run render -- demo/live-session.jsonl /tmp/live.wav`.
+- `demo/live-session.mid` and `demo/live-session-lyrics.txt`: the exports the dashboard produces for that session.
+- `demo/screenshots/`: stills from the real session.
+
+The session shows four community votes (two votes each) changing key, scale, mood and tempo, and the bot's vote replies in Twitch chat. Moderation deletes were exercised through tests and replay, not on live Twitch.
+
 ## Codex and the judging criteria
 
-<!-- CODEX-LOG -->
+**Codex session ID: `01a18e4f-931d-7322-98f6-a9415b2c8960`.** All of the application code, tests and docs under `src/`, `public/`, `scripts/` and `docs/` were written by OpenAI Codex (Codex CLI, model `gpt-6.1-terra`) in this one thread: the first prompt through `codex exec`, then six follow-ups through `codex exec resume` on the same session. The prompts were mine, written as short specs (product description, module list, hard requirements such as one shared deterministic synth, instruments as plugins, tests next to every module). What Codex did with them:
+
+1. **Offline core:** theory, text-to-phrase mapping, the arrangement engine, chat commands, eight-instrument synth plumbing, MIDI export and the WAV renderer, with 19 tests.
+2. **Twitch and browser:** device-code OAuth for a public client, an EventSub WebSocket client with reconnect and keepalive handling, Helix chat replies, the local server, session log and replay, and the first overlay and broadcast desk.
+3. **Looking at its own output:** Codex drove headless Chromium, took screenshots of the overlay and desk, opened them with its image viewer (85 image views over the session) and changed spacing, label clipping and contrast based on what it saw. It also added the manual clock and frame capture used for the demo video.
+4. **A real Twitch run:** I connected two test accounts to a real channel, fed the recorded log back to Codex, and it fixed what it could see in the live frames (truncated names, near-identical colours, thin lanes, missing setting-change banners). The same log is committed as `demo/live-session.jsonl`.
+5. **Configurable votes and bot echoes:** `CHOIR_VOTES` and `CHOIR_VOTE_WINDOW_SECONDS`, and the authenticated account's own replies are never ingested.
+6. **Plugin test:** I asked for a steel pan instrument using the recipe below. Codex added one file, made voice assignment stable when a plugin is added, added an audition command, and the conformance tests picked the new instrument up without edits.
+7. **Release hygiene:** a secrets and path audit, full-text lyric export, package metadata and a clean-clone `npm ci && npm test` run.
+
+The session ended with 17 commits, 56 passing tests and 137 shell commands run by Codex. The demo video, its narration and the scripts that assemble it were made outside Codex; the video's Codex section is a replay of the real rollout file, sped up.
 
 - **Innovation / idea:** chat text becomes a harmonized, evolving composition rather than a queue of requested songs.
 - **Potential impact:** communities hear their own contributions; synthesis removes the need for licensed samples, and moderation can remove a phrase from the music.
