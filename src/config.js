@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 /** Load simple KEY=value lines without overwriting the process environment. */
 export async function loadEnv(file='.env',env=process.env) {
+  if(env.CHOIR_SKIP_ENV==='1')return env;
   let content; try { content=await readFile(file,'utf8'); } catch(e) { if(e.code==='ENOENT') return env; throw e; }
   for(const line of content.split(/\r?\n/)) {const m=/^\s*(?:export\s+)?([A-Za-z_][\w]*)\s*=\s*(.*?)\s*$/.exec(line);if(!m || Object.hasOwn(env,m[1]))continue;let value=m[2];if((value.startsWith('"')&&value.endsWith('"'))||(value.startsWith("'")&&value.endsWith("'")))value=value.slice(1,-1);else value=value.replace(/\s+#.*$/,'');env[m[1]]=value;}
   return env;

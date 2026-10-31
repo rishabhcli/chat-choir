@@ -13,7 +13,9 @@
     "render": "node src/cli/render.js",
     "login": "node src/cli/login.js",
     "prereplay": "node scripts/generate-registry.js",
-    "replay": "node src/cli/replay.js"
+    "replay": "node src/cli/replay.js",
+    "smoke": "node scripts/smoke-overlay.mjs",
+    "capture": "node scripts/capture.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -21,5 +23,8 @@
   "license": "MIT",
   "dependencies": {
     "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
   }
 }
