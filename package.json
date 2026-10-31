@@ -28,5 +28,23 @@
   },
   "devDependencies": {
     "playwright": "^1.64.1"
-  }
+  },
+  "description": "Turn Twitch chat into a live, synthesized band and piano-roll overlay.",
+  "keywords": [
+    "twitch",
+    "music",
+    "chat",
+    "synthesizer",
+    "streaming",
+    "midi"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rishabhcli/chat-choir.git"
+  },
+  "homepage": "https://github.com/rishabhcli/chat-choir#readme",
+  "bugs": {
+    "url": "https://github.com/rishabhcli/chat-choir/issues"
+  },
+  "author": "Rishabh Bansal"
 }

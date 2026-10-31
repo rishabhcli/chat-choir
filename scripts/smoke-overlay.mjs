@@ -1,4 +1,5 @@
 import {chromium} from 'playwright';
+import {launchSmokeBrowser} from './smoke-browser.mjs';
 import {spawn} from 'node:child_process';
 import net from 'node:net';
 import {mkdtemp,mkdir,readFile,rm} from 'node:fs/promises';
@@ -11,7 +12,7 @@ const temp=await mkdtemp(path.join(os.tmpdir(),'choir-smoke-'));await mkdir(out,
 const child=spawn('npm',['run','replay','--','samples/demo-session.json','--speed','4'],{cwd:root,env:{...process.env,PORT:String(port),SESSION_DIR:temp,CHOIR_SKIP_ENV:'1'},detached:process.platform!=='win32',stdio:['ignore','pipe','pipe']});let log='';child.stdout.on('data',x=>log+=x);child.stderr.on('data',x=>log+=x);let browser;
 try {
   const base=`http://127.0.0.1:${port}`;let ready=false;for(let i=0;i<150;i++){if(child.exitCode!==null)throw Error(`Replay exited early:\n${log}`);try{if((await fetch(`${base}/api/state`)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}if(!ready)throw Error(`Replay server did not start:\n${log}`);
-  browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--autoplay-policy=no-user-gesture-required']});
+  browser=await launchSmokeBrowser(chromium,{headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--autoplay-policy=no-user-gesture-required']});
   const errors=[],page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text());});page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`${base}/overlay?bg=dark&autostart=1`);await page.waitForFunction(()=>window.__choir?.notesScheduled>0 && window.__choir?.audioState==='running' && window.__choir?.audioPeak>0,{timeout:20000});
   const audio=await page.evaluate(()=>({notes:window.__choir.notesScheduled,peak:window.__choir.audioPeak,state:window.__choir.audioState}));assert.ok(audio.peak>0);console.log(`Live browser audio: ${audio.notes} notes, analyser peak ${audio.peak.toFixed(5)}, ${audio.state}`);
@@ -24,4 +25,4 @@ try {
   const fromUrl=await browser.newPage({viewport:{width:1920,height:1080}});fromUrl.on('pageerror',e=>errors.push(e.message));fromUrl.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await fromUrl.goto(`${base}/overlay?clock=manual&session=/export-session.jsonl`);await fromUrl.waitForFunction(()=>window.__choir?.sessionLoaded);assert.ok((await fromUrl.evaluate(()=>window.__choir.lastEvents.length))>0,'Session URL did not load events');
   const dashboard=await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:1});await dashboard.goto(`${base}/`);await dashboard.getByText('Set the mood.').waitFor();await dashboard.screenshot({path:path.join(out,'dashboard.png')});
   assert.deepEqual(errors,[],`Overlay console errors: ${errors.join('; ')}`);console.log('Screenshots: idle, mid-song, key-change, moderation, celebration, busy-background, dashboard');
-} finally {await browser?.close();if(child.exitCode===null){try{process.kill(process.platform==='win32'?child.pid:-child.pid,'SIGTERM');}catch{}await Promise.race([new Promise(r=>child.once('exit',r)),new Promise(r=>setTimeout(r,2000))]);}await rm(temp,{recursive:true,force:true});}
+} catch(error) {console.error(`Smoke test failed: ${error.message}`);process.exitCode=1;} finally {await browser?.close();if(child.exitCode===null){try{process.kill(process.platform==='win32'?child.pid:-child.pid,'SIGTERM');}catch{}await Promise.race([new Promise(r=>child.once('exit',r)),new Promise(r=>setTimeout(r,2000))]);}await rm(temp,{recursive:true,force:true});}

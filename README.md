@@ -47,7 +47,7 @@ npm run replay -- samples/demo-session.json
 npm run replay -- samples/demo-session.json --speed 2
 ```
 
-Open the same dashboard and overlay URLs. The example is hand-written synthetic chat, and both screens show a **REPLAY** badge. Replay needs no Twitch credentials. The dashboard's local test box inserts a clearly marked message into the local session and overlay; it does not send that message to Twitch.
+Open the same dashboard and overlay URLs. The example is hand-written synthetic chat, and both screens show a **REPLAY** badge. Replay needs no Twitch credentials. The dashboard's local test box inserts a clearly marked message into the local session and overlay; it does not send that message to Twitch. The `demo/` folder also includes a real session recorded with two test accounts, plus its MIDI and lyric-sheet exports.
 
 ```sh
 npm run render -- samples/demo-session.json /tmp/choir.wav
