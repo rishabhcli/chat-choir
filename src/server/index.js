@@ -20,7 +20,7 @@ function cleanSettings(input) {
 export async function createChoirServer({config,mode='live',speed=1,log=console.log,auth,helix}={}) {
   if(!config)config=getConfig(process.env,{live:mode==='live'});if(!Number.isFinite(speed)||speed<=0||speed>1000)throw Error('Invalid replay speed');
   await mkdir(config.sessionDir,{recursive:true,mode:0o700});const filename=path.join(config.sessionDir,`${new Date().toISOString().replace(/[:.]/g,'-')}-${process.pid}.jsonl`),stream=createWriteStream(filename,{flags:'wx',mode:0o600});
-  const state=new ChoirSession({replies:config.replies}),policy=new ChatPolicy({ignoreUsers:config.ignoreUsers}),events=[];let start=Date.now(),lastT=0,eventsub,identity=null,channel=null,connected=false,lastReply=-Infinity,serial=0,replayTimers=[],closing=false;
+  const state=new ChoirSession({replies:config.replies,votesRequired:config.votesRequired,voteWindowMs:config.voteWindowMs}),policy=new ChatPolicy({ignoreUsers:config.ignoreUsers}),events=[];let start=Date.now(),lastT=0,eventsub,identity=null,channel=null,connected=false,lastReply=-Infinity,serial=0,replayTimers=[],closing=false;
   const now=()=>Math.max(lastT,Math.floor((Date.now()-start)*speed));
   const status=()=>({mode,speed,connected,user:identity?.login||null,channel:channel?.login||null,clients:wss.clients.size,noTest:config.noTest});
   const settings=()=>({...state.transport.getSettings(now()),volume:state.volume,replies:state.replies,mutedUsers:state.mutedUsers});
@@ -29,6 +29,7 @@ export async function createChoirServer({config,mode='live',speed=1,log=console.
   const publishStatus=()=>broadcast({type:'status',status:status()});
   function append(input) {const event={...input,t:Math.max(lastT,Math.floor(input.t??now()))};lastT=event.t;state.apply(event);events.push(event);stream.write(`${JSON.stringify(event)}\n`);broadcast({type:'event',event});return event;}
   async function handleEvent(input,t=now()) {
+    if ((input.type==='chat' || input.type==='command') && identity?.userId != null && String(input.userId)===String(identity.userId)) return;
     if(input.type==='chat') {const decision=policy.classify(input,t,state.mutedUsers);if(decision.kind==='skip')return;
       if(decision.kind==='command'){const result=state.commands.process({...decision.event,t});if(result.type==='apply')append({type:'settings',t,patch:result.patch,source:'chat-command'});if(result.reply && state.replies && mode==='live' && helix && t-lastReply>=3000){lastReply=t;try{const sent=await helix.sendChatMessage(channel.id,identity.userId,result.reply);if(!sent.isSent)log(`Chat reply dropped (${sent.dropReason?.code||'unknown'})`);}catch(e){log(`Chat reply failed (${e.status||'network error'})`);}}return;}
       return append({...decision.event,t});

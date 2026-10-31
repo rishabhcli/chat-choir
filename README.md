@@ -37,7 +37,7 @@ If necessary, put Homebrew Node on PATH with `export PATH=/opt/homebrew/bin:$PAT
 
 The server listens on `127.0.0.1` only. A Twitch user token is stored locally with mode `0600` in `.data/tokens.json` and refreshes automatically; session logs and first-seen user IDs also stay under `.data` by default. These files contain private account or chat data and should not be shared. `TWITCH_CHANNEL` can name another channel, but follow/hype subscriptions may require broadcaster or moderator authorization and will be skipped with a warning if unavailable.
 
-Options in `.env.example`: `PORT` (default 3000), `CHOIR_REPLIES` (0/1, default 1), `CHOIR_NO_TEST` (1 disables local test messages), `IGNORE_USERS` (comma-separated logins), and `SESSION_DIR`. `TWITCH_ID_BASE`, `TWITCH_API_BASE`, and `TWITCH_EVENTSUB_URL` override endpoints for testing.
+Options in `.env.example`: `PORT` (default 3000), `CHOIR_REPLIES` (0/1, default 1), `CHOIR_VOTES` (1–20, default 3), `CHOIR_VOTE_WINDOW_SECONDS` (positive seconds, default 60), `CHOIR_NO_TEST` (1 disables local test messages), `IGNORE_USERS` (comma-separated logins), and `SESSION_DIR`. `TWITCH_ID_BASE`, `TWITCH_API_BASE`, and `TWITCH_EVENTSUB_URL` override endpoints for testing.
 
 ## Try it without Twitch
 
@@ -76,7 +76,7 @@ For custom renderers, `/overlay?clock=manual` disables WebSocket updates, timers
 
 Messages are stripped of URLs and @mentions, then words become notes based on estimated syllable counts; long words split into two notes. Emotes become grid-aligned percussion. A stable user-ID hash selects voice, pan and default color. Moderators play bass, subscribers play pad and chords, broadcasters lead, and VIPs play bells. First-time participants get a welcome arpeggio. Phrases begin on the next bar (or the opening downbeat for a first message at time zero), loop with decreasing gain, and conform to the active key and chord. `?` phrases rise without resolving; `!` phrases jump and accent. Messages have a four-second per-user cooldown and the arrangement has phrase and note budgets. Deletions, clears, and dashboard mutes fade affected voices out.
 
-Try `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, or `!choir`. Broadcasters and moderators authorize changes directly; other viewers need three distinct votes for the same value within 60 seconds. Music settings change on the next bar; chat replies are globally limited to one every three seconds.
+Try `!key D`, `!key F# minor`, `!scale dorian`, `!tempo 96`, `!mood hype`, or `!choir`. Broadcasters and moderators authorize changes directly; other viewers need distinct votes for the same value within the configured window (by default, 3 votes within 60 seconds). `!choir` and vote replies show the current threshold. The authenticated bot account’s own messages are ignored by user ID. Music settings change on the next bar; chat replies are globally limited to one every three seconds.
 
 Overlay parameters: `bg=dark`, `scale` (0.45–1.5), `position=top|bottom|full`, `volume` (0–1), `lyrics=0|1`, and `autostart=1`. For example: `/overlay.html?bg=dark&position=top&volume=0.6`. `window.__choir` exposes the current snapshot, recent events, audio context time and state, master analyser peak, and scheduled-note count for debugging.
 
